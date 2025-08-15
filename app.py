@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Page configuration - MUST be first Streamlit command
+# Page configuration 
 st.set_page_config(
     page_title="LinkedIn Profile Optimizer",
     page_icon="💼",
@@ -64,7 +64,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
+# Initializing session state
 if 'chat_agent' not in st.session_state:
     st.session_state.chat_agent = LinkedInChatAgent()
 
@@ -81,7 +81,7 @@ if 'analysis_data' not in st.session_state:
     st.session_state.analysis_data = None
 
 def main():
-    # Debug section - remove this after confirming secrets work
+    # Debug section 
     with st.expander("🔧 Debug Info (Remove after testing)"):
         st.write("**API Keys Status:**")
         st.write(f"OpenRouter API Key: {'✅ Set' if config.OPENROUTER_API_KEY else '❌ Missing'}")
@@ -131,7 +131,7 @@ def main():
         )
         
         if st.button("🎯 Analyze Job Fit", use_container_width=True) and job_role:
-            # Check if profile data exists in memory system
+            # Checking if profile data exists in memory system
             profile_data = st.session_state.chat_agent.memory_system.get_profile_context(st.session_state.user_id)
             if profile_data:
                 with st.spinner("Analyzing job fit..."):
@@ -199,7 +199,7 @@ def main():
             st.session_state.messages = []
             st.session_state.profile_data = None
             st.session_state.analysis_data = None
-            # Clear memory system as well
+            # Clear memory system
             st.session_state.chat_agent.memory_system.clear_session(st.session_state.user_id)
             st.rerun()
     
