@@ -20,7 +20,7 @@ class LinkedInChatAgent:
             api_key=config.OPENROUTER_API_KEY
         )
         
-        # Initialize components
+        # Initializing components
         self.scraper = LinkedInScraper()
         self.profile_analyzer = ProfileAnalyzer()
         self.job_analyzer = JobAnalyzer()
@@ -44,15 +44,15 @@ class LinkedInChatAgent:
     def process_message(self, user_id: str, message: str) -> str:
         """Process user message and return appropriate response"""
         try:
-            # Add message to memory
+            # Adding message to memory
             self.memory_system.add_message(user_id, message, "user")
             
-            # Get conversation context
+            # conversation context
             context = self.memory_system.get_conversation_context(user_id)
             profile_data = self.memory_system.get_profile_context(user_id)
             user_preferences = self.memory_system.get_user_preferences(user_id)
             
-            # Determine intent and generate response
+            # intent and generate response
             intent = self._determine_intent(message)
             response = self._generate_response(user_id, message, intent, profile_data, user_preferences, context)
             
@@ -117,17 +117,17 @@ class LinkedInChatAgent:
     def _handle_profile_analysis(self, user_id: str, message: str, profile_data: Optional[Dict]) -> str:
         """Handle LinkedIn profile analysis requests"""
         try:
-            # Extract LinkedIn URL from message
+            # Extracting LinkedIn URL from message
             linkedin_url = self._extract_linkedin_url(message)
             
             if not linkedin_url:
                 return "I couldn't find a LinkedIn URL in your message. Please provide a valid LinkedIn profile URL to analyze."
             
-            # Scrape profile data
+            # Scraping profile data
             profile_data = self.scraper.scrape_profile(linkedin_url)
             
             if not profile_data:
-                # Check if it's a private profile issue
+                # Checking if it's a private profile issue
                 cookies = self.scraper._get_linkedin_cookie()
                 has_valid_cookies = len(cookies) > 0 and any('li_at' in cookie.get('name', '') for cookie in cookies)
                 
@@ -155,13 +155,13 @@ The profile you're trying to analyze appears to be private or requires authentic
                 else:
                     return "I encountered an error analyzing your profile. The profile might not exist or be accessible. Please check the URL and try again."
             
-            # Store profile data in memory
+            # Storing profile data in memory
             self.memory_system.update_profile_data(user_id, profile_data)
             
-            # Analyze profile
+            # Analyzing profile
             analysis = self.profile_analyzer.analyze_profile(profile_data)
             
-            # Generate response
+            # Generating response
             response = self._format_profile_analysis_response(analysis, profile_data)
             
             return response
@@ -173,23 +173,23 @@ The profile you're trying to analyze appears to be private or requires authentic
     def _handle_job_analysis(self, user_id: str, message: str, profile_data: Optional[Dict]) -> str:
         """Handle job analysis requests"""
         try:
-            # Get profile data from memory if not provided
+            # profile data from memory if not provided
             if not profile_data:
                 profile_data = self.memory_system.get_profile_context(user_id)
             
             if not profile_data:
                 return "I don't have your profile data yet. Please analyze your LinkedIn profile first by providing your LinkedIn URL, then I can help you with job fit analysis."
             
-            # Extract job role from message
+            # Extracting job role from message
             job_role = self._extract_job_role(message)
             
             if not job_role:
                 return "I couldn't identify a specific job role in your message. Please specify which role you're interested in (e.g., 'Software Engineer', 'Data Scientist', 'Product Manager')."
             
-            # Analyze job fit
+            # Analyzing job fit
             job_analysis = self.job_analyzer.analyze_job_fit(profile_data, job_role)
             
-            # Generate response
+            # Generating response
             response = self._format_job_analysis_response(job_analysis)
             
             return response
@@ -201,14 +201,14 @@ The profile you're trying to analyze appears to be private or requires authentic
     def _handle_content_generation(self, user_id: str, message: str, profile_data: Optional[Dict]) -> str:
         """Handle content generation requests"""
         try:
-            # Get profile data from memory if not provided
+            # profile data from memory if not provided
             if not profile_data:
                 profile_data = self.memory_system.get_profile_context(user_id)
             
             if not profile_data:
                 return "I don't have your profile data yet. Please analyze your LinkedIn profile first by providing your LinkedIn URL, then I can help you improve your content."
             
-            # Determine what content to generate
+            # Determining what content to generate
             if "headline" in message.lower():
                 enhanced_headlines = self.content_generator.generate_enhanced_headline(profile_data)
                 return self._format_headline_suggestions(enhanced_headlines)
@@ -222,7 +222,7 @@ The profile you're trying to analyze appears to be private or requires authentic
                 return self._format_experience_suggestions(enhanced_experience)
             
             else:
-                # Generate all content improvements
+                # all content improvements
                 return self._generate_all_content_improvements(profile_data)
             
         except Exception as e:
@@ -232,24 +232,24 @@ The profile you're trying to analyze appears to be private or requires authentic
     def _handle_career_guidance(self, user_id: str, message: str, profile_data: Optional[Dict], user_preferences: Dict) -> str:
         """Handle career guidance requests"""
         try:
-            # Get profile data from memory if not provided
+            # profile data from memory if not provided
             if not profile_data:
                 profile_data = self.memory_system.get_profile_context(user_id)
             
             if not profile_data:
                 return "I don't have your profile data yet. Please analyze your LinkedIn profile first by providing your LinkedIn URL, then I can provide personalized career guidance."
             
-            # Extract career goals from message
+            # Extracingt career goals from message
             career_goals = self._extract_career_goals(message)
             
-            # Update user preferences
+            # Updating user preferences
             if career_goals:
                 self.memory_system.update_career_goals(user_id, career_goals)
             
-            # Generate career guidance
+            # Generating career guidance
             guidance = self.content_generator.generate_career_guidance(profile_data, career_goals)
             
-            # Generate response
+            # Generating response
             response = self._format_career_guidance_response(guidance)
             
             return response
@@ -289,7 +289,7 @@ The profile you're trying to analyze appears to be private or requires authentic
     def _handle_general_conversation(self, user_id: str, message: str, profile_data: Optional[Dict], context: List[Dict]) -> str:
         """Handle general conversation"""
         try:
-            # Build a single prompt string for the LLM (our wrapper expects a string)
+            # single prompt string for the LLM (our wrapper expects a string)
             recent_turns = []
             for msg in context[-5:]:
                 role = "User" if msg.get("sender") == "user" else "Assistant"
@@ -503,17 +503,17 @@ The profile you're trying to analyze appears to be private or requires authentic
         """Generate all content improvements"""
         response = "✨ **Complete Profile Enhancement Package:**\n\n"
         
-        # Generate headlines
+        # Generating headlines
         headlines = self.content_generator.generate_enhanced_headline(profile_data)
         response += "🎯 **Headline Options:**\n"
         response += f"• {headlines['achievement_focused']}\n\n"
         
-        # Generate summary
+        # Generating summary
         summaries = self.content_generator.generate_enhanced_summary(profile_data)
         response += "📝 **Summary Enhancement:**\n"
         response += f"{summaries['achievement_focused'][:200]}...\n\n"
         
-        # Generate experience enhancements
+        # Generating experience enhancements
         experience = self.content_generator.generate_experience_enhancements(profile_data)
         if experience.get("enhanced_experiences"):
             response += "💼 **Experience Improvements:**\n"
