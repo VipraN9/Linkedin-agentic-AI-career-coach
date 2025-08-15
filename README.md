@@ -1,4 +1,4 @@
-# 💼 LinkedIn Profile Optimizer
+# 💼 LinkedIn Agentic AI Career Coach
 
 An AI-powered chat system that helps users optimize their LinkedIn profiles, analyze job fit, and provide career guidance. Built with Streamlit, LangGraph, and OpenRouter (free LLM models).
 
@@ -121,33 +121,6 @@ Use the sidebar for quick access to:
 - Summary enhancement
 - Career guidance
 
-## 🏗️ Architecture
-
-### Multi-Agent System
-
-The application uses a sophisticated multi-agent architecture:
-
-1. **LinkedIn Scraper Agent**: Extracts profile data using Apify
-2. **Profile Analyzer Agent**: Evaluates profile sections and generates scores
-3. **Job Analyzer Agent**: Compares profiles with job requirements
-4. **Content Generator Agent**: Creates enhanced profile content
-5. **Chat Agent**: Orchestrates all agents and manages conversation flow
-
-### Memory System
-
-- **Session Memory**: Tracks current conversation and profile data
-- **Persistent Memory**: Stores user preferences and interaction history
-- **Context Management**: Maintains conversation context across turns
-
-### Data Flow
-
-1. User provides LinkedIn URL
-2. Scraper extracts profile data
-3. Analyzer evaluates profile sections
-4. Chat agent processes user requests
-5. Appropriate agents generate responses
-6. Memory system stores context
-7. UI displays results and visualizations
 
 ## 📊 Features in Detail
 
@@ -237,7 +210,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Apify**: For LinkedIn profile scraping capabilities
-- **OpenAI**: For powerful language model access
 - **Streamlit**: For the beautiful web framework
 - **LangChain**: For the AI orchestration framework
 - **Plotly**: For interactive data visualizations
@@ -265,23 +237,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    - Check that your `.env` file is properly configured
    - Verify Python version is 3.8 or higher
 
-## 📞 Support
 
-For support and questions:
-- Create an issue in the GitHub repository
-- Check the [LinkedIn Cookies Guide](LINKEDIN_COOKIES_GUIDE.md) for profile access issues
-- Review the example usage in the README
 
-## 🔮 Future Enhancements
 
-- **Multi-language Support**: Support for multiple languages
-- **Advanced Analytics**: More detailed profile insights
-- **Integration APIs**: Connect with job boards and learning platforms
-- **Mobile App**: Native mobile application
-- **Team Features**: Collaborative profile optimization
-- **A/B Testing**: Test different profile versions
-- **Export Features**: Export analysis reports and recommendations
-
----
-
-**Built with ❤️ for professional growth and career advancement**
+**Built with ❤️ by Vupra Nagaich for professional growth and career advancement**
