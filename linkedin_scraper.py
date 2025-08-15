@@ -14,9 +14,9 @@ class LinkedInScraper:
     def extract_linkedin_id_from_url(self, linkedin_url: str) -> Optional[str]:
         """Extract LinkedIn profile ID from URL"""
         try:
-            # Handle different LinkedIn URL formats
+            # Handling different LinkedIn URL formats
             if "linkedin.com/in/" in linkedin_url:
-                # Extract the profile identifier
+                # Extracting the profile identifier
                 parts = linkedin_url.split("linkedin.com/in/")
                 if len(parts) > 1:
                     profile_id = parts[1].split("/")[0].split("?")[0]
@@ -37,7 +37,7 @@ class LinkedInScraper:
                 print("❌ Invalid LinkedIn URL format")
                 return None
             
-            # Get comprehensive cookies for private profile access
+            # Getting comprehensive cookies for private profile access
             cookies = self._get_comprehensive_linkedin_cookies()
             has_valid_cookies = len(cookies) > 0 and any('li_at' in cookie.get('name', '') for cookie in cookies)
             
@@ -50,8 +50,8 @@ class LinkedInScraper:
                 "headless": True,
                 "maxRequestRetries": 5,  # Increased retries
                 "timeoutSecs": 120,      # Increased timeout
-                "waitUntil": "networkidle",  # Wait for network to be idle
-                "waitForSelector": ".pv-top-card",  # Wait for profile content
+                "waitUntil": "networkidle",  # Waiting for network to be idle
+                "waitForSelector": ".pv-top-card",  # Waiting for profile content
                 "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
             
@@ -62,7 +62,7 @@ class LinkedInScraper:
                 print(f"✅ Using {len(cookies)} cookies for authentication")
                 print(f"🔑 Cookie names: {[c['name'] for c in cookies]}")
             
-            # Use the working actor with enhanced settings
+            
             try:
                 print("🔄 Starting LinkedIn profile scraper...")
                 run = self.client.actor("curious_coder~linkedin-profile-scraper").call(run_input=run_input)
@@ -106,7 +106,7 @@ class LinkedInScraper:
                     print(f"🔍 Raw data type: {type(profile_data)}")
                     print(f"🔍 Raw data preview: {str(profile_data)[:200]}...")
                     
-                    # Handle case where data might be a string (JSON)
+                    # case where data might be a string (JSON)
                     if isinstance(profile_data, str):
                         try:
                             import json
@@ -154,7 +154,7 @@ class LinkedInScraper:
             print("⚠️  Warning: No valid LinkedIn cookies found.")
             return []
         
-        # Convert cookie string to array format for Apify actor
+        # Converting cookie string to array format for Apify actor
         cookie_parts = cookie.split(';')
         cookie_array = []
         
@@ -168,24 +168,24 @@ class LinkedInScraper:
                 name = name.strip()
                 value = value.strip()
                 
-                # Add the cookie
+                # Adding the cookie
                 cookie_array.append({
                     "name": name,
                     "value": value,
                     "domain": ".linkedin.com"
                 })
                 
-                # Check if it's a required cookie
+                # Checking if it's a required cookie
                 if name in required_cookies:
                     print(f"✅ Found required cookie: {name}")
-            elif part:  # Handle cookies without '=' (like some session cookies)
+            elif part:  # cookies without '=' (like some session cookies)
                 cookie_array.append({
                     "name": part,
                     "value": "",
                     "domain": ".linkedin.com"
                 })
         
-        # Add additional cookies that might be missing but are often needed
+        
         additional_cookies = {
             "lang": "en_US",
             "li_mc": "1",
@@ -197,7 +197,7 @@ class LinkedInScraper:
             "timezone": "America/New_York"
         }
         
-        # Add missing cookies that aren't already present
+        # Adding missing cookies that aren't already present
         existing_names = [c['name'] for c in cookie_array]
         for name, value in additional_cookies.items():
             if name not in existing_names:
@@ -228,7 +228,7 @@ class LinkedInScraper:
                 "proxyUrls": [proxy_url]
             }
         else:
-            # Use Apify's proxy service with better settings for private profiles
+            # Using Apify's proxy service with better settings for private profiles
             return {
                 "useApifyProxy": True,
                 "apifyProxyGroups": ["RESIDENTIAL"],
@@ -261,13 +261,13 @@ class LinkedInScraper:
             if response.status_code == 201:
                 run_id = response.json().get("data", {}).get("id")
                 
-                # Wait for completion
+                # Waiting for completion
                 for _ in range(30):  # Wait up to 5 minutes
                     status_response = requests.get(f"{api_url}/{run_id}", headers=headers)
                     if status_response.status_code == 200:
                         status_data = status_response.json()
                         if status_data.get("data", {}).get("status") == "SUCCEEDED":
-                            # Get results
+                            # results
                             results_url = f"https://api.apify.com/v2/acts/curious_coder~linkedin-profile-scraper/runs/{run_id}/dataset/items"
                             results_response = requests.get(results_url, headers=headers)
                             if results_response.status_code == 200:
@@ -285,7 +285,7 @@ class LinkedInScraper:
     def _process_profile_data(self, raw_data: Dict) -> Dict:
         """Process and structure the scraped profile data"""
         try:
-            # Handle case where raw_data might be a string or invalid
+            # case where raw_data might be a string or invalid
             if not isinstance(raw_data, dict):
                 print(f"⚠️  Invalid data format received: {type(raw_data)}")
                 return None
@@ -321,7 +321,7 @@ class LinkedInScraper:
                 "followers": str(raw_data.get("followersCount", ""))
             }
             
-            # Process experience (positions)
+            # Processing experience (positions)
             for pos in raw_data.get("positions", []):
                 if not isinstance(pos, dict):
                     continue
@@ -355,7 +355,7 @@ class LinkedInScraper:
                     "description": ""
                 })
             
-            # Process education
+            # Processing education
             for edu in raw_data.get("educations", []):
                 if not isinstance(edu, dict):
                     continue
@@ -386,7 +386,7 @@ class LinkedInScraper:
                     "description": ""
                 })
             
-            # Process skills (if available)
+            # Processing skills (if available)
             for skill in raw_data.get("skills", []):
                 if not isinstance(skill, dict):
                     continue
