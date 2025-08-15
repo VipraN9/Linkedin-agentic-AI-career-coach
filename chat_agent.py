@@ -289,25 +289,45 @@ The profile you're trying to analyze appears to be private or requires authentic
     def _handle_general_conversation(self, user_id: str, message: str, profile_data: Optional[Dict], context: List[Dict]) -> str:
         """Handle general conversation"""
         try:
-            # Create conversation context
-            conversation_history = []
-            for msg in context[-5:]:  # Last 5 messages
-                if msg["sender"] == "user":
-                    conversation_history.append(HumanMessage(content=msg["message"]))
-                else:
-                    conversation_history.append(AIMessage(content=msg["message"]))
-            
-            # Add current message
-            conversation_history.append(HumanMessage(content=message))
-            
-            # Generate response using LLM
-            response = self.llm.invoke(conversation_history)
-            
-            return response.content
-            
+            # Build a single prompt string for the LLM (our wrapper expects a string)
+            recent_turns = []
+            for msg in context[-5:]:
+                role = "User" if msg.get("sender") == "user" else "Assistant"
+                recent_turns.append(f"{role}: {msg.get('message','').strip()}")
+
+            profile_bits = []
+            if profile_data:
+                name = profile_data.get("basic_info", {}).get("full_name")
+                headline = profile_data.get("basic_info", {}).get("headline")
+                if name:
+                    profile_bits.append(f"Name: {name}")
+                if headline:
+                    profile_bits.append(f"Headline: {headline}")
+
+            style_instructions = (
+                "Be concise, warm, and practical. Avoid generic greetings. "
+                "Offer one specific, actionable next step related to LinkedIn when appropriate."
+            )
+
+            prompt = (
+                f"System: {self.system_prompt.strip()}\n"
+                + (f"Context: {' | '.join(profile_bits)}\n" if profile_bits else "")
+                + ("\n".join(recent_turns) + "\n" if recent_turns else "")
+                + f"User: {message.strip()}\n"
+                + f"Assistant ({style_instructions}):"
+            )
+
+            response_text = self.llm.invoke(prompt)
+            return response_text.strip()
+
         except Exception as e:
             print(f"Error in general conversation: {e}")
-            return "I'm here to help you optimize your LinkedIn profile and advance your career. What would you like to work on today?"
+            # More organic fallback
+            return (
+                "Thanks for the message—happy to help with your LinkedIn. "
+                "Tell me what you’d like to improve first (headline, summary, experience, or job fit), "
+                "and I’ll give you a concrete next step."
+            )
     
     def _extract_linkedin_url(self, message: str) -> Optional[str]:
         """Extract LinkedIn URL from message"""

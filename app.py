@@ -1,4 +1,13 @@
 import streamlit as st
+
+# Page configuration - MUST be first Streamlit command
+st.set_page_config(
+    page_title="LinkedIn Profile Optimizer",
+    page_icon="💼",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import streamlit_chat
 import uuid
 import time
@@ -8,14 +17,6 @@ import plotly.express as px
 import pandas as pd
 import config
 from chat_agent import LinkedInChatAgent
-
-# Page configuration
-st.set_page_config(
-    page_title="LinkedIn Profile Optimizer",
-    page_icon="💼",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Custom CSS for better styling
 st.markdown("""

@@ -21,6 +21,7 @@ def get_secret(key, default=None):
 # API Keys
 OPENROUTER_API_KEY = get_secret("OPENROUTER_API_KEY")
 APIFY_API_TOKEN = get_secret("APIFY_API_TOKEN")
+LINKEDIN_COOKIE = get_secret("LINKEDIN_COOKIE")
 
 # LLM Configuration
 # Free models available on OpenRouter

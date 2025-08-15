@@ -37,55 +37,203 @@ class LinkedInScraper:
                 print("❌ Invalid LinkedIn URL format")
                 return None
             
-            # Check if we have valid cookies
-            cookies = self._get_linkedin_cookie()
+            # Get comprehensive cookies for private profile access
+            cookies = self._get_comprehensive_linkedin_cookies()
             has_valid_cookies = len(cookies) > 0 and any('li_at' in cookie.get('name', '') for cookie in cookies)
             
-            # Run Apify actor with proper cookie and proxy settings
+            # Enhanced run input with better settings for private profiles
             run_input = {
                 "urls": [linkedin_url],
                 "cookie": cookies,
                 "proxy": self._get_proxy_config(),
                 "useChrome": True,
-                "headless": True
+                "headless": True,
+                "maxRequestRetries": 5,  # Increased retries
+                "timeoutSecs": 120,      # Increased timeout
+                "waitUntil": "networkidle",  # Wait for network to be idle
+                "waitForSelector": ".pv-top-card",  # Wait for profile content
+                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
             
             print(f"🔍 Attempting to scrape: {linkedin_url}")
             if not has_valid_cookies:
-                print("⚠️  No valid cookies - profile must be public")
+                print("⚠️  No valid cookies - trying public profile access")
+            else:
+                print(f"✅ Using {len(cookies)} cookies for authentication")
+                print(f"🔑 Cookie names: {[c['name'] for c in cookies]}")
             
-            run = self.client.actor("curious_coder~linkedin-profile-scraper").call(run_input=run_input)
-            
-            # Get results
-            dataset = self.client.dataset(run["defaultDatasetId"])
-            results = list(dataset.iterate_items())
-            
-            if results:
-                profile_data = results[0]
-                processed_data = self._process_profile_data(profile_data)
+            # Use the working actor with enhanced settings
+            try:
+                print("🔄 Starting LinkedIn profile scraper...")
+                run = self.client.actor("curious_coder~linkedin-profile-scraper").call(run_input=run_input)
+                print(f"✅ Actor started successfully with run ID: {run.get('id', 'unknown')}")
                 
-                # Check if we got meaningful data
-                if processed_data and processed_data.get("basic_info", {}).get("full_name"):
-                    print(f"✅ Successfully scraped profile: {processed_data['basic_info']['full_name']}")
-                    return processed_data
-                else:
-                    print("⚠️  Profile scraped but no meaningful data found")
-                    if not has_valid_cookies:
-                        print("💡 This might be due to profile privacy settings. Try adding LinkedIn cookies.")
+                # Wait for completion with better error handling
+                max_wait_time = 300  # 5 minutes
+                wait_interval = 10   # Check every 10 seconds
+                elapsed_time = 0
+                
+                while elapsed_time < max_wait_time:
+                    try:
+                        run_status = self.client.run(run["id"]).get()
+                        status = run_status.get("status", "UNKNOWN")
+                        
+                        if status == "SUCCEEDED":
+                            print("✅ Scraping completed successfully!")
+                            break
+                        elif status in ["FAILED", "ABORTED", "TIMED-OUT"]:
+                            print(f"❌ Scraping failed with status: {status}")
+                            return None
+                        else:
+                            print(f"⏳ Scraping in progress... Status: {status}")
+                            
+                    except Exception as e:
+                        print(f"⚠️  Error checking status: {e}")
+                    
+                    time.sleep(wait_interval)
+                    elapsed_time += wait_interval
+                
+                if elapsed_time >= max_wait_time:
+                    print("⏰ Scraping timed out")
                     return None
-            
-            print("❌ No results returned from scraper")
-            if not has_valid_cookies:
-                print("💡 Profile might be private. Add LinkedIn cookies to access private profiles.")
-            return None
+                
+                # Get results
+                dataset = self.client.dataset(run["defaultDatasetId"])
+                results = list(dataset.iterate_items())
+                
+                if results:
+                    profile_data = results[0]
+                    print(f"🔍 Raw data type: {type(profile_data)}")
+                    print(f"🔍 Raw data preview: {str(profile_data)[:200]}...")
+                    
+                    # Handle case where data might be a string (JSON)
+                    if isinstance(profile_data, str):
+                        try:
+                            import json
+                            profile_data = json.loads(profile_data)
+                            print("✅ Successfully parsed JSON string")
+                        except json.JSONDecodeError:
+                            print("❌ Failed to parse JSON string")
+                            return None
+                    
+                    processed_data = self._process_profile_data(profile_data)
+                    
+                    # Check if we got meaningful data
+                    if processed_data and processed_data.get("basic_info", {}).get("full_name"):
+                        print(f"✅ Successfully scraped profile: {processed_data['basic_info']['full_name']}")
+                        return processed_data
+                    else:
+                        print("⚠️  Profile scraped but no meaningful data found")
+                        if not has_valid_cookies:
+                            print("💡 This might be due to profile privacy settings. Try adding more LinkedIn cookies.")
+                        return None
+                
+                print("❌ No results returned from scraper")
+                if not has_valid_cookies:
+                    print("💡 Profile might be private. Add comprehensive LinkedIn cookies to access private profiles.")
+                return None
+                
+            except Exception as e:
+                print(f"❌ Error with actor: {e}")
+                return self._fallback_scrape(linkedin_url)
             
         except Exception as e:
             print(f"❌ Error scraping LinkedIn profile: {e}")
             if "not found" in str(e).lower() or "404" in str(e).lower():
                 print("💡 Profile URL might be invalid or profile doesn't exist")
             elif "access" in str(e).lower() or "forbidden" in str(e).lower():
-                print("💡 Profile might be private. Add LinkedIn cookies to access private profiles.")
+                print("💡 Profile might be private. Add comprehensive LinkedIn cookies to access private profiles.")
             return self._fallback_scrape(linkedin_url)
+    
+    def _get_comprehensive_linkedin_cookies(self) -> list:
+        """Get comprehensive LinkedIn cookies for private profile access"""
+        # Try to get cookie from config first, then environment
+        cookie = getattr(config, 'LINKEDIN_COOKIE', None) or os.getenv('LINKEDIN_COOKIE', '')
+        
+        if not cookie or 'your_li_at_cookie_here' in cookie.lower():
+            print("⚠️  Warning: No valid LinkedIn cookies found.")
+            return []
+        
+        # Convert cookie string to array format for Apify actor
+        cookie_parts = cookie.split(';')
+        cookie_array = []
+        
+        # Required cookies for private profile access
+        required_cookies = ['li_at', 'JSESSIONID', 'bcookie', 'lang', 'li_mc', 'li_gc']
+        
+        for part in cookie_parts:
+            part = part.strip()
+            if '=' in part:
+                name, value = part.split('=', 1)
+                name = name.strip()
+                value = value.strip()
+                
+                # Add the cookie
+                cookie_array.append({
+                    "name": name,
+                    "value": value,
+                    "domain": ".linkedin.com"
+                })
+                
+                # Check if it's a required cookie
+                if name in required_cookies:
+                    print(f"✅ Found required cookie: {name}")
+            elif part:  # Handle cookies without '=' (like some session cookies)
+                cookie_array.append({
+                    "name": part,
+                    "value": "",
+                    "domain": ".linkedin.com"
+                })
+        
+        # Add additional cookies that might be missing but are often needed
+        additional_cookies = {
+            "lang": "en_US",
+            "li_mc": "1",
+            "li_gc": "MToxOjE=",
+            "bcookie": '"v=2&1234567890"',
+            "bscookie": '"v=1&1234567890"',
+            "li_theme": "minimal",
+            "li_theme_set": "app",
+            "timezone": "America/New_York"
+        }
+        
+        # Add missing cookies that aren't already present
+        existing_names = [c['name'] for c in cookie_array]
+        for name, value in additional_cookies.items():
+            if name not in existing_names:
+                cookie_array.append({
+                    "name": name,
+                    "value": value,
+                    "domain": ".linkedin.com"
+                })
+                print(f"➕ Added default cookie: {name}")
+        
+        print(f"📊 Total cookies prepared: {len(cookie_array)}")
+        return cookie_array
+    
+    def _get_linkedin_cookie(self) -> list:
+        """Legacy method - use _get_comprehensive_linkedin_cookies instead"""
+        return self._get_comprehensive_linkedin_cookies()
+    
+    def _get_linkedin_cookie_string(self) -> str:
+        """Get LinkedIn cookie as string for sessionCookies parameter"""
+        return os.getenv('LINKEDIN_COOKIE', '')
+    
+    def _get_proxy_config(self) -> Dict:
+        """Get proxy configuration from environment or return default"""
+        proxy_url = os.getenv('PROXY_URL', '')
+        if proxy_url:
+            return {
+                "useApifyProxy": False,
+                "proxyUrls": [proxy_url]
+            }
+        else:
+            # Use Apify's proxy service with better settings for private profiles
+            return {
+                "useApifyProxy": True,
+                "apifyProxyGroups": ["RESIDENTIAL"],
+                "apifyProxyCountry": "US"
+            }
     
     def _fallback_scrape(self, linkedin_url: str) -> Optional[Dict]:
         """Fallback method using direct API call to Apify"""
@@ -95,10 +243,12 @@ class LinkedInScraper:
             
             payload = {
                 "urls": [linkedin_url],
-                "cookie": self._get_linkedin_cookie(),
+                "cookie": self._get_comprehensive_linkedin_cookies(),
                 "proxy": self._get_proxy_config(),
                 "useChrome": True,
-                "headless": True
+                "headless": True,
+                "maxRequestRetries": 5,
+                "timeoutSecs": 120
             }
             
             headers = {
@@ -131,54 +281,6 @@ class LinkedInScraper:
         except Exception as e:
             print(f"Fallback scraping failed: {e}")
             return None
-    
-    def _get_linkedin_cookie(self) -> list:
-        """Get LinkedIn cookie from environment or return default"""
-        # You can set this in your .env file as LINKEDIN_COOKIE
-        cookie = os.getenv('LINKEDIN_COOKIE', '')
-        if not cookie or 'YOUR_LI_AT_COOKIE_HERE' in cookie:
-            # No valid cookies provided - this will limit access to public profiles only
-            print("⚠️  Warning: No valid LinkedIn cookies found. Only public profiles will be accessible.")
-            print("💡 To access private profiles, add your LinkedIn cookies to .env file:")
-            print("   1. Go to LinkedIn.com and log in")
-            print("   2. Open browser DevTools (F12)")
-            print("   3. Go to Application/Storage tab")
-            print("   4. Find 'li_at' and 'JSESSIONID' cookies")
-            print("   5. Add to .env: LINKEDIN_COOKIE=li_at=YOUR_VALUE; JSESSIONID=YOUR_VALUE")
-            return []
-        
-        # Convert cookie string to array format
-        cookie_parts = cookie.split(';')
-        cookie_array = []
-        for part in cookie_parts:
-            part = part.strip()
-            if '=' in part:
-                name, value = part.split('=', 1)
-                cookie_array.append({
-                    "name": name.strip(),
-                    "value": value.strip(),
-                    "domain": ".linkedin.com"
-                })
-        return cookie_array
-    
-    def _get_linkedin_cookie_string(self) -> str:
-        """Get LinkedIn cookie as string for sessionCookies parameter"""
-        return os.getenv('LINKEDIN_COOKIE', '')
-    
-    def _get_proxy_config(self) -> Dict:
-        """Get proxy configuration from environment or return default"""
-        proxy_url = os.getenv('PROXY_URL', '')
-        if proxy_url:
-            return {
-                "useApifyProxy": False,
-                "proxyUrls": [proxy_url]
-            }
-        else:
-            # Use Apify's proxy service
-            return {
-                "useApifyProxy": True,
-                "apifyProxyGroups": ["RESIDENTIAL"]
-            }
     
     def _process_profile_data(self, raw_data: Dict) -> Dict:
         """Process and structure the scraped profile data"""
@@ -221,9 +323,20 @@ class LinkedInScraper:
             
             # Process experience (positions)
             for pos in raw_data.get("positions", []):
+                if not isinstance(pos, dict):
+                    continue
+                    
                 time_period = pos.get("timePeriod", {})
+                if not isinstance(time_period, dict):
+                    time_period = {}
+                    
                 start_date = time_period.get("startDate", {})
                 end_date = time_period.get("endDate", {})
+                
+                if not isinstance(start_date, dict):
+                    start_date = {}
+                if not isinstance(end_date, dict):
+                    end_date = {}
                 
                 duration = ""
                 if start_date:
@@ -244,9 +357,20 @@ class LinkedInScraper:
             
             # Process education
             for edu in raw_data.get("educations", []):
+                if not isinstance(edu, dict):
+                    continue
+                    
                 time_period = edu.get("timePeriod", {})
+                if not isinstance(time_period, dict):
+                    time_period = {}
+                    
                 start_date = time_period.get("startDate", {})
                 end_date = time_period.get("endDate", {})
+                
+                if not isinstance(start_date, dict):
+                    start_date = {}
+                if not isinstance(end_date, dict):
+                    end_date = {}
                 
                 duration = ""
                 if start_date and end_date:
@@ -264,6 +388,9 @@ class LinkedInScraper:
             
             # Process skills (if available)
             for skill in raw_data.get("skills", []):
+                if not isinstance(skill, dict):
+                    continue
+                    
                 processed_data["skills"].append({
                     "name": skill.get("name", ""),
                     "endorsements": skill.get("endorsements", 0)

@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+import json
 from llm_wrapper import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import config
@@ -18,10 +19,16 @@ class ContentGenerator:
             current_headline = profile_data.get("basic_info", {}).get("headline", "")
             experience = profile_data.get("experience", [])
             skills = profile_data.get("skills", [])
+            basic_info = profile_data.get("basic_info", {})
+            full_name = basic_info.get("full_name", "")
+            location = basic_info.get("location", "")
             
             # Extract key information
             top_skills = [skill["name"] for skill in skills[:5]] if skills else []
-            recent_role = experience[0]["title"] if experience else ""
+            recent_role = (experience[0].get("title") if experience and isinstance(experience[0], dict) else "") or (
+                basic_info.get("current_role", "")
+            )
+            industry = basic_info.get("industry", "")
             
             prompt = f"""
             Create an enhanced LinkedIn headline for a professional with the following information:
@@ -30,6 +37,9 @@ class ContentGenerator:
             Recent role: {recent_role}
             Top skills: {', '.join(top_skills)}
             Target role: {target_role if target_role else 'General professional'}
+            Name: {full_name}
+            Industry: {industry}
+            Location: {location}
             
             Requirements:
             1. Include key skills and value proposition
@@ -46,13 +56,44 @@ class ContentGenerator:
             Format as JSON with keys: achievement_focused, skill_focused, value_focused
             """
             
-            response = self.llm.invoke(prompt)
-            
-            # Parse response (simplified - in practice you'd need more robust parsing)
+            raw = self.llm.invoke(prompt)
+
+            # Try to parse JSON directly; if not possible, fall back to heuristic generation
+            parsed: Dict = {}
+            try:
+                # Some models wrap JSON in code fences; strip common wrappers
+                cleaned = raw.strip()
+                if cleaned.startswith("```"):
+                    cleaned = cleaned.strip("`\n ")
+                    # Remove optional language hint like ```json
+                    if cleaned.lower().startswith("json\n"):
+                        cleaned = cleaned[5:]
+                parsed = json.loads(cleaned)
+                if all(k in parsed and isinstance(parsed[k], str) for k in ["achievement_focused", "skill_focused", "value_focused"]):
+                    return parsed
+            except Exception:
+                pass
+
+            # Heuristic, personalized fallback using available profile signals
+            primary_skill_list = ", ".join(top_skills[:3]) if top_skills else "impactful solutions"
+            two_skills = ", ".join(top_skills[:2]) if top_skills else "strategy & execution"
+            role_for_copy = recent_role or (target_role or "Professional")
+            industry_hint = f" | {industry}" if industry else ""
+
+            achievement = (
+                f"{role_for_copy}{industry_hint} | Led high-impact projects | Drove measurable results | {primary_skill_list}"
+            )
+            skill = (
+                f"{role_for_copy} | {primary_skill_list} | Known for reliability and craftsmanship"
+            )
+            value = (
+                f"{role_for_copy} | Turning goals into outcomes | {two_skills}"
+            )
+
             return {
-                "achievement_focused": f"Senior {recent_role} | Led teams of 10+ | Increased efficiency by 30% | {', '.join(top_skills[:3])}",
-                "skill_focused": f"{recent_role} | Expert in {', '.join(top_skills[:3])} | Full-stack Development | Problem Solver",
-                "value_focused": f"Results-driven {recent_role} | Transforming ideas into scalable solutions | {', '.join(top_skills[:2])} Specialist"
+                "achievement_focused": achievement,
+                "skill_focused": skill,
+                "value_focused": value
             }
             
         except Exception as e:
