@@ -80,6 +80,16 @@ if 'analysis_data' not in st.session_state:
     st.session_state.analysis_data = None
 
 def main():
+    # Debug section - remove this after confirming secrets work
+    with st.expander("🔧 Debug Info (Remove after testing)"):
+        st.write("**API Keys Status:**")
+        st.write(f"OpenRouter API Key: {'✅ Set' if config.OPENROUTER_API_KEY else '❌ Missing'}")
+        st.write(f"Apify API Token: {'✅ Set' if config.APIFY_API_TOKEN else '❌ Missing'}")
+        
+        if not config.OPENROUTER_API_KEY or not config.APIFY_API_TOKEN:
+            st.error("⚠️ Missing API keys! Please check your Streamlit Cloud secrets configuration.")
+            st.info("Go to your app Settings → Secrets and add your API keys.")
+    
     # Header
     st.markdown('<h1 class="main-header">💼 LinkedIn Profile Optimizer</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">AI-powered profile analysis, job matching, and career guidance</p>', unsafe_allow_html=True)
