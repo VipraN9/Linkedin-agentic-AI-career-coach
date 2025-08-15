@@ -240,4 +240,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 
 
-**Built with ❤️ by Vupra Nagaich for professional growth and career advancement**
+**Built with ❤️ by Vipra Nagaich for professional growth and career advancement**
