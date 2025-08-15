@@ -21,7 +21,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: Add Redis for enhanced memory management
+  # Optional: Redis for enhanced memory management
   redis:
     image: redis:7-alpine
     ports:
