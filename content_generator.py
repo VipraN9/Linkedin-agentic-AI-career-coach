@@ -23,7 +23,7 @@ class ContentGenerator:
             full_name = basic_info.get("full_name", "")
             location = basic_info.get("location", "")
             
-            # Extract key information
+            # Extracting key information
             top_skills = [skill["name"] for skill in skills[:5]] if skills else []
             recent_role = (experience[0].get("title") if experience and isinstance(experience[0], dict) else "") or (
                 basic_info.get("current_role", "")
@@ -58,14 +58,14 @@ class ContentGenerator:
             
             raw = self.llm.invoke(prompt)
 
-            # Try to parse JSON directly; if not possible, fall back to heuristic generation
+            # Trying to parse JSON directly; if not possible, fall back to heuristic generation
             parsed: Dict = {}
             try:
-                # Some models wrap JSON in code fences; strip common wrappers
+               
                 cleaned = raw.strip()
                 if cleaned.startswith("```"):
                     cleaned = cleaned.strip("`\n ")
-                    # Remove optional language hint like ```json
+                    
                     if cleaned.lower().startswith("json\n"):
                         cleaned = cleaned[5:]
                 parsed = json.loads(cleaned)
@@ -112,12 +112,12 @@ class ContentGenerator:
             skills = profile_data.get("skills", [])
             education = profile_data.get("education", [])
             
-            # Extract key information
+            # Extracting key information
             years_experience = len(experience)
             top_skills = [skill["name"] for skill in skills[:8]] if skills else []
             recent_achievements = []
             
-            # Extract achievements from recent experience
+            # Extracting achievements from recent experience
             for exp in experience[:2]:
                 if exp.get("description"):
                     recent_achievements.append(f"{exp['title']} at {exp['company']}")
@@ -148,7 +148,7 @@ class ContentGenerator:
             
             response = self.llm.invoke(prompt)
             
-            # Generate enhanced summaries
+            # Generating enhanced summaries
             story_focused = f"""
             I'm a passionate {experience[0]['title'] if experience else 'professional'} with {years_experience} years of experience in the technology industry. My journey began with a fascination for solving complex problems, which led me to specialize in {', '.join(top_skills[:3])}.
 
@@ -196,10 +196,10 @@ class ContentGenerator:
                 current_description = exp.get("description", "")
                 
                 if not current_description:
-                    # Generate basic description if none exists
+                    # Generating basic description if none exists
                     enhanced_description = self._generate_basic_experience_description(exp)
                 else:
-                    # Enhance existing description
+                    # Enhance=ing existing description
                     enhanced_description = self._enhance_experience_description(exp)
                 
                 enhanced_experience.append({
@@ -221,7 +221,7 @@ class ContentGenerator:
         title = exp.get("title", "")
         company = exp.get("company", "")
         
-        # Generate based on role type
+        # Generating based on role type
         if any(keyword in title.lower() for keyword in ["engineer", "developer", "programmer"]):
             return f"""
             • Developed and maintained software applications using modern programming languages and frameworks
@@ -254,7 +254,7 @@ class ContentGenerator:
         current_description = exp.get("description", "")
         title = exp.get("title", "")
         
-        # Add action words and metrics if missing
+        # Addoing action words and metrics if missing
         action_words = ["developed", "implemented", "led", "managed", "improved", "increased", "reduced", "created"]
         has_action_words = any(word in current_description.lower() for word in action_words)
         
@@ -282,18 +282,18 @@ class ContentGenerator:
             skills = profile_data.get("skills", [])
             education = profile_data.get("education", [])
             
-            # Analyze current position
+            # Analyzing current position
             current_role = experience[0]["title"] if experience else "Entry-level"
             years_experience = len(experience)
             skill_level = self._assess_skill_level(skills)
             
-            # Generate career paths
+            # Generating career paths
             career_paths = self._generate_career_paths(current_role, years_experience, skill_level)
             
-            # Generate skill development plan
+            # Generating skill development plan
             skill_plan = self._generate_skill_development_plan(skills, user_goals)
             
-            # Generate learning resources
+            # Generating learning resources
             learning_resources = self._generate_learning_resources(skills, user_goals)
             
             return {
